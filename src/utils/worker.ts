@@ -14,9 +14,7 @@ export class CPUWorkers {
 
   waitFirst<T, U>(path: string, getWorkerData: (index: number) => T): Promise<U> {
     return new Promise((resolve) => {
-      const cpus = os.cpus();
-
-      const workers = cpus.map(
+      const workers = this.cpus.map(
         (cpu, index) => new Worker(path, { workerData: getWorkerData(index) })
       );
 

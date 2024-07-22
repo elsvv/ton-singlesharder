@@ -1,6 +1,6 @@
 import { Address, beginCell, type Cell } from "@ton/core";
 
-export function basechainStateinitToAddress(stateinit: Cell): Address {
+export function stateinitToBasechainAddress(stateinit: Cell): Address {
   return new Address(0, stateinit.hash());
 }
 

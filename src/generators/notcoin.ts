@@ -1,7 +1,7 @@
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
 import { Address } from "@ton/core";
 
-import { calculateUsdtJettonWalletStateinit, calculateVanityStateinit } from "../contracts";
+import { calculateNotcoinJettonWalletStateinit, calculateVanityStateinit } from "../contracts";
 import {
   isTwoAddrHashSameShard,
   CPUWorkers,
@@ -36,7 +36,7 @@ if (isMainThread) {
 
   for (let i = sault.from; i < sault.to; i++) {
     const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
-    const stateinit = calculateUsdtJettonWalletStateinit(deployerAddress);
+    const stateinit = calculateNotcoinJettonWalletStateinit(deployerAddress);
     const sameShard = isTwoAddrHashSameShard(stateinit.hash(), vanityStateinit.hash(), 64);
     if (sameShard) {
       const stateinitBase64 = stateinit.toBoc().toString("base64");
