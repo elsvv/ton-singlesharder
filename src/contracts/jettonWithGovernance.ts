@@ -5,13 +5,19 @@ export const USDT_WALLET_CODE = Cell.fromBase64(
   "te6cckEBAQEAIwAIQgKPRS16Tf10BmtoI2UXclntBXNENb52tf1L1divK3w9aCBrv3Y="
 );
 
+/**
+ * Calculates only for ownerAddress as Internal address in basechain
+ */
 export function calculateJettonWalletWithGovernanceStateinit(
-  ownerAddress: Address,
+  ownerAddressHash: Buffer,
   jettonMasterAddress: Address
 ): Cell {
   const data = beginCell()
     .storeUint(0, 4 + 4) // status + balance
-    .storeAddress(ownerAddress)
+    .storeUint(2, 2) // Internal address
+    .storeUint(0, 1) // No anycast
+    .storeInt(0, 8) // Basechain
+    .storeBuffer(ownerAddressHash)
     .storeAddress(jettonMasterAddress)
     .endCell();
 
