@@ -3,6 +3,7 @@ import { Address, type Cell } from "@ton/core";
 
 import {
   calculateNotcoinJettonWalletStateinit,
+  calculateTonstakersJettonWalletStateinit,
   calculateUsdtJettonWalletStateinit,
   calculateVanityStateinit,
 } from "../contracts";
@@ -14,7 +15,7 @@ import {
 } from "../utils";
 
 type MineParams = {
-  jetton: "usdt" | "notcoin";
+  jetton: "usdt" | "notcoin" | "tonstakers";
   deployerAddress: string;
   additionalDataSliceBase64?: string;
 };
@@ -22,7 +23,9 @@ type MineParams = {
 type WorkerData = MineParams;
 type WorkerResultData = { stateinitBase64: string; sault: string };
 
-export async function mine(params: MineParams) {
+const SHARD_MAX_DEPTH = 16;
+
+export async function mineVanitySault(params: MineParams) {
   if (!isMainThread) throw new Error("Mine called not from main thread");
 
   const cpuWorkers = new CPUWorkers();
@@ -42,6 +45,8 @@ if (!isMainThread) {
         return calculateNotcoinJettonWalletStateinit(ownerAddressHash);
       case "usdt":
         return calculateUsdtJettonWalletStateinit(ownerAddressHash);
+      case "tonstakers":
+        return calculateTonstakersJettonWalletStateinit(ownerAddressHash);
       default:
         throw new Error("Unknown jetton");
     }
@@ -55,7 +60,11 @@ if (!isMainThread) {
     const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
     const vanityStateinitHash = vanityStateinit.hash();
     const stateinit = calculateJettonStateinit(data.jetton, vanityStateinitHash);
-    const sameShard = isTwoAddrHashSameShard(stateinit.hash(), vanityStateinitHash, 16);
+    const sameShard = isTwoAddrHashSameShard(
+      stateinit.hash(),
+      vanityStateinitHash,
+      SHARD_MAX_DEPTH
+    );
     if (sameShard) {
       const stateinitBase64 = stateinit.toBoc().toString("base64");
       const sault = i.toString();
