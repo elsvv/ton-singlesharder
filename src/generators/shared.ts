@@ -36,15 +36,12 @@ export async function mine(params: MineParams) {
 if (!isMainThread) {
   const { sault, data }: WorkerDataWithSault<WorkerData> = workerData;
 
-  function calculateJettonStateinit(
-    jetton: WorkerData["jetton"],
-    deployerAddressHash: Buffer
-  ): Cell {
+  function calculateJettonStateinit(jetton: WorkerData["jetton"], ownerAddressHash: Buffer): Cell {
     switch (jetton) {
       case "notcoin":
-        return calculateNotcoinJettonWalletStateinit(deployerAddressHash);
+        return calculateNotcoinJettonWalletStateinit(ownerAddressHash);
       case "usdt":
-        return calculateUsdtJettonWalletStateinit(deployerAddressHash);
+        return calculateUsdtJettonWalletStateinit(ownerAddressHash);
       default:
         throw new Error("Unknown jetton");
     }
@@ -58,7 +55,7 @@ if (!isMainThread) {
     const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
     const vanityStateinitHash = vanityStateinit.hash();
     const stateinit = calculateJettonStateinit(data.jetton, vanityStateinitHash);
-    const sameShard = isTwoAddrHashSameShard(stateinit.hash(), vanityStateinitHash, 32);
+    const sameShard = isTwoAddrHashSameShard(stateinit.hash(), vanityStateinitHash, 16);
     if (sameShard) {
       const stateinitBase64 = stateinit.toBoc().toString("base64");
       const sault = i.toString();
