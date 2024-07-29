@@ -39,27 +39,31 @@ export async function mineVanitySault(params: MineParams) {
 if (!isMainThread) {
   const { sault, data }: WorkerDataWithSault<WorkerData> = workerData;
 
-  function calculateJettonStateinit(jetton: WorkerData["jetton"], ownerAddressHash: Buffer): Cell {
+  const calculateJettonStateinit = (
+    jetton: WorkerData["jetton"]
+  ): ((ownerAddressHash: Buffer) => Cell) => {
     switch (jetton) {
       case "notcoin":
-        return calculateNotcoinJettonWalletStateinit(ownerAddressHash);
+        return calculateNotcoinJettonWalletStateinit;
       case "usdt":
-        return calculateUsdtJettonWalletStateinit(ownerAddressHash);
+        return calculateUsdtJettonWalletStateinit;
       case "tonstakers":
-        return calculateTonstakersJettonWalletStateinit(ownerAddressHash);
+        return calculateTonstakersJettonWalletStateinit;
       default:
         throw new Error("Unknown jetton");
     }
-  }
+  };
 
   const deployerAddress = Address.parse(data.deployerAddress);
 
   console.log(`Worker #${sault.index}: mining started...`);
 
+  const calculateStateinit = calculateJettonStateinit(data.jetton);
+
   for (let i = sault.from; i < sault.to; i++) {
     const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
     const vanityStateinitHash = vanityStateinit.hash();
-    const stateinit = calculateJettonStateinit(data.jetton, vanityStateinitHash);
+    const stateinit = calculateStateinit(vanityStateinitHash);
     const sameShard = isTwoAddrHashSameShard(
       stateinit.hash(),
       vanityStateinitHash,
