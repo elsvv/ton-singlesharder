@@ -1,9 +1,9 @@
-import { mineVanitySault } from "./shared";
+import { mineVanitySaultForJetton } from "./common";
 
 async function main() {
   const deployerAddress = "UQCtwXRh0SQe780YnH1QqUBF8-kYSctm1s0__gcxrWs_mmii";
 
-  const result = await mineVanitySault({ jetton: "notcoin", deployerAddress });
+  const result = await mineVanitySaultForJetton({ jetton: "notcoin", deployerAddress });
 
   console.log("result", result);
   process.exit(0);
