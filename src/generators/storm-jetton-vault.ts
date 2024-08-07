@@ -1,9 +1,13 @@
-import { Address, beginCell } from "@ton/core";
+import { beginCell } from "@ton/core";
 import { mineVanitySaultForJetton } from "./common";
+import { NOTCOIN_MAINNET_ADDR } from "../contracts";
 
 async function main() {
-  const deployerAddress = "0QAaeWYhjGiyDoI33P-geQ0RXE1MQGKdcn6XdCI8mXDTae-u";
-  const jettonMinterAddress = Address.parse("kQAIXwAk9nelN-Iy-Z4j2wx5EcDMB_qIm-kZyHRYfU6TKk1N");
+  // Storm Vault Deployer Address (as string)
+  const deployerAddress = "";
+
+  // Storm Vault Jetton Master Address (Notcoin for example)
+  const jettonMinterAddress = NOTCOIN_MAINNET_ADDR;
 
   const additionalDataSliceBase64 = beginCell()
     .storeAddress(jettonMinterAddress)
