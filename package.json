@@ -3,14 +3,21 @@
   "module": "index.ts",
   "type": "module",
   "devDependencies": {
-    "@types/bun": "latest"
+    "@types/bun": "latest",
+    "@types/qrcode-terminal": "^0.12.2"
   },
   "peerDependencies": {
     "typescript": "^5.5.4"
   },
   "dependencies": {
+    "@ton-api/ton-adapter": "^0.1.0-beta.0",
+    "@ton/blueprint": "^0.22.0",
     "@ton/core": "^0.56.3",
     "@ton/crypto": "^3.2.0",
-    "@ton/ton": "^13.11.2"
+    "@ton/ton": "^14.0.0",
+    "@tonconnect/sdk": "^3.0.3",
+    "inquirer": "^8.2.5",
+    "qrcode-terminal": "^0.12.0",
+    "ton-lite-client": "^3.0.0"
   }
 }

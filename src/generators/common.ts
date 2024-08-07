@@ -1,5 +1,5 @@
 import { isMainThread, parentPort, workerData } from "node:worker_threads";
-import { Address, type Cell } from "@ton/core";
+import { Address, Cell } from "@ton/core";
 
 import {
   calculateNotcoinJettonWalletStateinit,
@@ -34,6 +34,7 @@ async function mineVanitySault(params: MineParams) {
   if (!isMainThread) throw new Error("Mine called not from main thread");
 
   const cpuWorkers = new CPUWorkers();
+  console.log(`Start mining sault with SHARD_MAX_DEPTH=${SHARD_MAX_DEPTH}`);
 
   return cpuWorkers.waitFirst<WorkerDataWithSault<MineParams>, WorkerResultData>(
     __filename,
@@ -73,8 +74,13 @@ if (!isMainThread) {
 
     const calculateTargetJettonStateinit = calculateJettonStateinit(data.jetton);
 
+    const additionalDataBuilder =
+      data.additionalDataSliceBase64 === undefined
+        ? undefined
+        : Cell.fromBase64(data.additionalDataSliceBase64).asBuilder();
+
     for (let i = sault.from; i < sault.to; i++) {
-      const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
+      const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
       const vanityStateinitHash = vanityStateinit.hash();
       const stateinit = calculateTargetJettonStateinit(vanityStateinitHash);
       const sameShard = isTwoAddrHashSameShard(
@@ -86,15 +92,22 @@ if (!isMainThread) {
         const stateinitBase64 = vanityStateinit.toBoc().toString("base64");
         const sault = i.toString();
 
-        parentPort!.postMessage({ stateinitBase64, sault });
+        const address = new Address(0, vanityStateinit.hash());
+
+        parentPort!.postMessage({ stateinitBase64, sault, address: address.toRawString() });
         break;
       }
     }
   } else if (data.mode === "address") {
     const targetAddress = Address.parse(data.targetAddress);
 
+    const additionalDataBuilder =
+      data.additionalDataSliceBase64 === undefined
+        ? undefined
+        : Cell.fromBase64(data.additionalDataSliceBase64).asBuilder();
+
     for (let i = sault.from; i < sault.to; i++) {
-      const vanityStateinit = calculateVanityStateinit(deployerAddress, i);
+      const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
       const vanityStateinitHash = vanityStateinit.hash();
       const sameShard = isTwoAddrHashSameShard(
         targetAddress.hash,
@@ -105,7 +118,9 @@ if (!isMainThread) {
         const stateinitBase64 = vanityStateinit.toBoc().toString("base64");
         const sault = i.toString();
 
-        parentPort!.postMessage({ stateinitBase64, sault });
+        const address = new Address(0, vanityStateinit.hash());
+
+        parentPort!.postMessage({ stateinitBase64, sault, address: address.toRawString() });
         break;
       }
     }
