@@ -1,4 +1,4 @@
-import { isMainThread, parentPort, workerData } from "node:worker_threads";
+import { isMainThread, parentPort, workerData, MessagePort } from "node:worker_threads";
 import { Address, Cell } from "@ton/core";
 
 import {
@@ -23,12 +23,19 @@ type MineJettonParams = { jetton: "usdt" | "notcoin" | "tonstakers" };
 
 type MineAddressParams = { targetAddress: string };
 
-type MineParams = MineDeployerParams &
-  (({ mode: "address" } & MineAddressParams) | ({ mode: "jetton" } & MineJettonParams));
+type MineAddressAndJettonParams = MineJettonParams & MineAddressParams;
+
+type MineParams =
+  | MineDeployerParams &
+      (
+        | ({ mode: "address" } & MineAddressParams)
+        | ({ mode: "jetton" } & MineJettonParams)
+        | ({ mode: "addressAndJetton" } & MineAddressAndJettonParams)
+      );
 
 type WorkerResultData = { stateinitBase64: string; sault: string };
 
-const SHARD_MAX_DEPTH = 16;
+const SHARD_MAX_DEPTH = 8;
 
 async function mineVanitySault(params: MineParams) {
   if (!isMainThread) throw new Error("Mine called not from main thread");
@@ -50,13 +57,34 @@ export async function mineVanitySaultForAddress(params: MineDeployerParams & Min
   return mineVanitySault({ ...params, mode: "address" });
 }
 
+export async function mineVanitySaultForAddressAndJetton(
+  params: MineDeployerParams & MineAddressAndJettonParams
+) {
+  return mineVanitySault({ ...params, mode: "addressAndJetton" });
+}
+
 if (!isMainThread) {
+  function endMine(stateinit: Cell, sault: bigint) {
+    const address = new Address(0, stateinit.hash());
+
+    parentPort!.postMessage({
+      stateinitBase64: stateinit.toBoc().toString("base64"),
+      sault: sault.toString(),
+      address: address.toRawString(),
+    });
+  }
+
   const { sault, data }: WorkerDataWithSault<MineParams> = workerData;
 
   console.log(`Worker #${sault.index}: mining started...`);
   const deployerAddress = Address.parse(data.deployerAddress);
 
-  if (data.mode === "jetton") {
+  const additionalDataBuilder =
+    data.additionalDataSliceBase64 === undefined
+      ? undefined
+      : Cell.fromBase64(data.additionalDataSliceBase64).asBuilder();
+
+  if (data.mode === "jetton" || data.mode === "addressAndJetton") {
     const calculateJettonStateinit = (
       jetton: MineJettonParams["jetton"]
     ): ((ownerAddressHash: Buffer) => Cell) => {
@@ -74,37 +102,45 @@ if (!isMainThread) {
 
     const calculateTargetJettonStateinit = calculateJettonStateinit(data.jetton);
 
-    const additionalDataBuilder =
-      data.additionalDataSliceBase64 === undefined
-        ? undefined
-        : Cell.fromBase64(data.additionalDataSliceBase64).asBuilder();
+    if (data.mode === "jetton") {
+      for (let i = sault.from; i < sault.to; i++) {
+        const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
+        const vanityStateinitHash = vanityStateinit.hash();
+        const jettonStateinit = calculateTargetJettonStateinit(vanityStateinitHash);
+        const sameShard = isTwoAddrHashSameShard(
+          jettonStateinit.hash(),
+          vanityStateinitHash,
+          SHARD_MAX_DEPTH
+        );
+        if (sameShard) {
+          endMine(vanityStateinit, i);
+          break;
+        }
+      }
+    } else if (data.mode === "addressAndJetton") {
+      const targetAddress = Address.parse(data.targetAddress);
 
-    for (let i = sault.from; i < sault.to; i++) {
-      const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
-      const vanityStateinitHash = vanityStateinit.hash();
-      const stateinit = calculateTargetJettonStateinit(vanityStateinitHash);
-      const sameShard = isTwoAddrHashSameShard(
-        stateinit.hash(),
-        vanityStateinitHash,
-        SHARD_MAX_DEPTH
-      );
-      if (sameShard) {
-        const stateinitBase64 = vanityStateinit.toBoc().toString("base64");
-        const sault = i.toString();
+      for (let i = sault.from; i < sault.to; i++) {
+        const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
+        const vanityStateinitHash = vanityStateinit.hash();
 
-        const address = new Address(0, vanityStateinit.hash());
+        if (!isTwoAddrHashSameShard(targetAddress.hash, vanityStateinitHash, SHARD_MAX_DEPTH))
+          continue;
 
-        parentPort!.postMessage({ stateinitBase64, sault, address: address.toRawString() });
-        break;
+        const jettonStateinit = calculateTargetJettonStateinit(vanityStateinitHash);
+        const sameShard = isTwoAddrHashSameShard(
+          jettonStateinit.hash(),
+          vanityStateinitHash,
+          SHARD_MAX_DEPTH
+        );
+        if (sameShard) {
+          endMine(vanityStateinit, i);
+          break;
+        }
       }
     }
   } else if (data.mode === "address") {
     const targetAddress = Address.parse(data.targetAddress);
-
-    const additionalDataBuilder =
-      data.additionalDataSliceBase64 === undefined
-        ? undefined
-        : Cell.fromBase64(data.additionalDataSliceBase64).asBuilder();
 
     for (let i = sault.from; i < sault.to; i++) {
       const vanityStateinit = calculateVanityStateinit(deployerAddress, i, additionalDataBuilder);
@@ -115,12 +151,7 @@ if (!isMainThread) {
         SHARD_MAX_DEPTH
       );
       if (sameShard) {
-        const stateinitBase64 = vanityStateinit.toBoc().toString("base64");
-        const sault = i.toString();
-
-        const address = new Address(0, vanityStateinit.hash());
-
-        parentPort!.postMessage({ stateinitBase64, sault, address: address.toRawString() });
+        endMine(vanityStateinit, i);
         break;
       }
     }
