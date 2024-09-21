@@ -1,4 +1,4 @@
-import { isMainThread, parentPort, workerData, MessagePort } from "node:worker_threads";
+import { isMainThread, parentPort, workerData } from "node:worker_threads";
 import { Address, Cell } from "@ton/core";
 
 import {
@@ -35,7 +35,7 @@ type MineParams =
 
 type WorkerResultData = { stateinitBase64: string; sault: string };
 
-const SHARD_MAX_DEPTH = 8;
+const SHARD_MAX_DEPTH = 10;
 
 async function mineVanitySault(params: MineParams) {
   if (!isMainThread) throw new Error("Mine called not from main thread");

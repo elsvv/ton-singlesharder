@@ -1,9 +1,9 @@
 import { mineVanitySaultForAddress } from "./common";
 
 async function main() {
-  const deployerAddress = "UQCtwXRh0SQe780YnH1QqUBF8-kYSctm1s0__gcxrWs_mmii";
+  const deployerAddress = "";
 
-  const targetAddress = "EQCf4e6j3p3N5i_uAris16_HRfuQvRFj242swf7JhC0dx8IS";
+  const targetAddress = "";
 
   const result = await mineVanitySaultForAddress({ deployerAddress, targetAddress });
 
