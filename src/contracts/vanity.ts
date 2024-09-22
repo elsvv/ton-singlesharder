@@ -8,7 +8,7 @@ import { packStateinit } from "../utils";
     throw_if(0, in_msg_body.slice_empty?()); ;; ignore all empty messages
 
     slice cs = in_msg_full.begin_parse();
-
+    cs~load_uint(4);
     slice sender_addr = cs~load_msg_addr();
 
     throw_unless(0xffff, in_msg_body~load_uint(32) == 0x904e90bc);
@@ -28,7 +28,7 @@ import { packStateinit } from "../utils";
 */
 
 export const VANITY_CODE = Cell.fromBase64(
-  "te6cckEBAgEAPQABFP8A9KQT9LzyyAsBAFzTIMcA8kAB0PpAMIQPAtMfAYIQkE6QvLoT8vTtRND6QDDHBfLg5NTXTAH7BO1UufY+pA=="
+  "te6cckEBAgEAQAABFP8A9KQT9LzyyAsBAGLTIMcA8kAB0NMDMfpAMIQPAtMfAYIQkE6QvLoT8vTtRND6QDDHBfLg5NTXTAH7BO1UhqYgmg=="
 );
 
 export function calculateVanityStateinit(
