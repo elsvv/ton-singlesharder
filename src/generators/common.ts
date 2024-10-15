@@ -3,6 +3,7 @@ import { Address, Cell } from "@ton/core";
 
 import {
   calculateNotcoinJettonWalletStateinit,
+  calculatePTon2JettonWalletStateinit,
   calculateTonstakersJettonWalletStateinit,
   calculateUsdtJettonWalletStateinit,
   calculateVanityStateinit,
@@ -19,7 +20,7 @@ type MineDeployerParams = {
   additionalDataSliceBase64?: string;
 };
 
-type MineJettonParams = { jetton: "usdt" | "notcoin" | "tonstakers" };
+type MineJettonParams = { jetton: "usdt" | "notcoin" | "tonstakers" | "pton2" };
 
 type MineAddressParams = { targetAddress: string };
 
@@ -95,6 +96,8 @@ if (!isMainThread) {
           return calculateUsdtJettonWalletStateinit;
         case "tonstakers":
           return calculateTonstakersJettonWalletStateinit;
+        case "pton2":
+          return calculatePTon2JettonWalletStateinit;
         default:
           throw new Error("Unknown jetton");
       }
